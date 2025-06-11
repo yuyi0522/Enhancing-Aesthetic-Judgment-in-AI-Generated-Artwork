@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Text Prediction</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        h1, h2 {
+            font-weight: bold;
+            font-size: 32px;
+        }
+        label, #level {
+            font-weight: bold;
+            font-size: 24px;
+        }
+        textarea {
+            width: 100%;
+            font-size: 24px;
+        }
+        .button-container {
+            margin-top: 10px;
+        }
+        .button-container button {
+            font-size: 24px;
+            padding: 10px 20px;
+            margin-right: 10px;
+        }
+        #level {
+            font-size: 28px;
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <h1>Text Prediction</h1>
+    <form id="predict-form">
+        <label for="text">Text:</label><br>
+        <textarea id="text" name="text" rows="6" cols="80"></textarea><br>
+        <div class="button-container">
+            <button type="submit">Submit</button>
+            <button type="button" id="improve-button">Improve</button>
+        </div>
+    </form>
+    <h2>Level:</h2>
+    <p id="level"></p>
+
+    <h2>Prompt Improvement:</h2>
+    <label for="improved">Improved Prompt:</label><br>
+    <textarea id="improved" name="improved" rows="4" cols="80" disabled></textarea><br>
+    
+    <script>
+        document.getElementById('predict-form').onsubmit = function(event) {
+            event.preventDefault();
+            var text = document.getElementById('text').value;
+            fetch('/predict', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'text=' + encodeURIComponent(text)
+            }).then(response => response.json()).then(data => {
+                document.getElementById('level').textContent = data.level;
+            }).catch(error => {
+                console.error('Prediction error:', error);
+                alert('Prediction error: ' + error.message);
+            });
+        };
+
+        document.getElementById('improve-button').onclick = function(event) {
+            var text = document.getElementById('text').value;
+            fetch('/improve', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: 'text=' + encodeURIComponent(text)
+            }).then(response => {
+                if (response.ok) {
+                    return response.json();
+                } else {
+                    throw new Error('Server responded with an error!');
+                }
+            }).then(data => {
+                var improvedContent = data.improved_prompt.split(':').slice(1).join(':').trim();
+                document.getElementById('improved').textContent = improvedContent;
+                
+                fetch('/save-improved', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: 'improved=' + encodeURIComponent(improvedContent)
+                }).catch(error => {
+                    console.error('Save improved error:', error);
+                    alert('Save improved error: ' + error.message);
+                });
+            }).catch(error => {
+                console.error('Improvement error:', error);
+                alert('Improvement error: ' + error.message);
+            });
+        };
+    </script>
+</body>
+</html>
